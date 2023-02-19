@@ -1,6 +1,6 @@
 {
     "name": "decadence/telegram-reporter",
-    "description": "description",
+    "description": "Простой класс для отправки сообщений и информации об исключениях в Telegram",
 
     "require": {
         "guzzlehttp/guzzle": "^7.5",
@@ -8,7 +8,6 @@
     },
 
     "autoload": {
-
         "psr-4": {
             "TelegramReporter\\": "src/"
         }

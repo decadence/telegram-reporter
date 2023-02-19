@@ -32,10 +32,18 @@ class TelegramReporter
     protected $token;
 
     /**
-     * Таймаут взаимодействия с Telegram
+     * Таймаут взаимодействия с Telegram в секундах
      * @var int
      */
     protected $timeout = 5;
+
+    /**
+     * Лимит на длину сообщения в Telegram
+     * @var int
+     */
+    protected $messageLimit = 4096;
+
+    protected $baseUrl = "https://api.telegram.org";
 
     /**
      * Список игнорируемых исключений
@@ -80,7 +88,7 @@ class TelegramReporter
      */
     protected function getUrl($method)
     {
-        return "https://api.telegram.org/bot{$this->token}/{$method}";
+        return "{$this->baseUrl}/bot{$this->token}/{$method}";
     }
 
     /**
@@ -89,7 +97,7 @@ class TelegramReporter
      */
     public function sendExceptionMessage(Throwable $exception)
     {
-        // не отправляем исключения от локальной админки
+        // не отправляем исключения с локальной площадки
         if (App::isLocal()) {
             return false;
         }
@@ -114,20 +122,18 @@ class TelegramReporter
     {
         $emptyValue = "N/A";
 
-        $message = $exception->getMessage();
-        $message = $message ?: $emptyValue;
-
-        $class = get_class($exception);
-
-        $url = URL::full();
+        $message = $exception->getMessage() ?: $emptyValue;
 
         $user = Auth::user();
 
+        $class = get_class($exception);
         $file = $exception->getFile();
         $line = $exception->getLine();
+
+        $url = URL::full();
         $env = App::environment();
-        $user = data_get($user, "full_name", $emptyValue);
         $ip = request()->server("SERVER_ADDR", $emptyValue);
+        $user = data_get($user, "full_name", $emptyValue);
 
         return compact("message", "file", "line", "class", "url", "env", "user", "ip");
     }
@@ -137,28 +143,43 @@ class TelegramReporter
      * @param $text
      * @return bool
      */
-    public function sendMessage($text)
+    public function sendMessage($text, $markdown = false)
     {
         try {
+            $startTime = microtime(true);
+
             $url = $this->getUrl("sendMessage");
 
-            $messageLimit = 4090;
+            // сокращаем сообщение до лимита с учётом overflow-текста
+            $overflowText = "...";
+            $realLimit = $this->messageLimit - Str::length($overflowText);
+            $text = Str::limit($text, $realLimit, $overflowText);
 
-            // сокращаем text до лимита
-            $text = Str::limit($text, $messageLimit, "...");
+            $formParams = [
+                "chat_id" => $this->chatId,
+                "text" => $text,
+            ];
+
+            if ($markdown) {
+                $formParams["parse_mode"] = "markdown";
+            }
 
             $response = $this->client->post($url, [
-                RequestOptions::FORM_PARAMS => [
-                    "chat_id" => $this->chatId,
-                    "text" => $text,
-                ],
+                RequestOptions::FORM_PARAMS => $formParams,
 
                 RequestOptions::TIMEOUT => $this->timeout,
             ]);
 
             $json = json_decode($response->getBody()->getContents());
 
-            return data_get($json, "ok") === true;
+            $result = data_get($json, "ok") === true;
+
+            if ($result) {
+                $sendTime = round(microtime(true) - $startTime, 4);
+                Log::info("Сообщение успешно отправлено за {$sendTime} секунд");
+            }
+
+            return $result;
 
         } catch (Exception $exception) {
             Log::error("Ошибка при отправке сообщения: " . $exception->getMessage());

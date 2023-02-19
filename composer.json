@@ -3,7 +3,8 @@
     "description": "description",
 
     "require": {
-        "guzzlehttp/guzzle": "^7.5"
+        "guzzlehttp/guzzle": "^7.5",
+        "laravel/framework": "^10.0"
     },
 
     "autoload": {

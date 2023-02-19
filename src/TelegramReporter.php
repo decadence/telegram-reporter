@@ -2,8 +2,20 @@
 
 namespace Telegram;
 
+use App;
+use Log;
+use URL;
 use Exception;
 use GuzzleHttp\Client;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Session\TokenMismatchException;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
 /**
@@ -21,7 +33,16 @@ class TelegramReporter
      * Список игнорируемых исключений
      * @var array
      */
-    protected $ignoreExceptions = [];
+    protected $ignoreExceptions = [
+        AuthenticationException::class,
+        AuthorizationException::class,
+        HttpException::class,
+        HttpResponseException::class,
+        ModelNotFoundException::class,
+        SuspiciousOperationException::class,
+        TokenMismatchException::class,
+        ValidationException::class,
+    ];
 
     /**
      * Guzzle-экземпляр
@@ -29,15 +50,19 @@ class TelegramReporter
      */
     protected $client;
 
-    public function __construct($token)
+    /**
+     * ID чата для отправки сообщения
+     * @var
+     */
+    protected $chatId;
+
+    public function __construct($token, $chatId)
     {
         $this->token = $token;
-        $this->client = new Client();
-    }
 
-    public function setIgnoreExceptions($ignoreExceptions)
-    {
-        $this->ignoreExceptions = $ignoreExceptions;
+        $this->chatId = $chatId;
+
+        $this->client = new Client();
     }
 
     /**
@@ -56,6 +81,11 @@ class TelegramReporter
      */
     public function sendExceptionMessage(Throwable $exception)
     {
+        // не отправляем исключения от локальной админки
+        if (App::isLocal()) {
+            return false;
+        }
+
         // если исключение в списке игнорируемых, ничего не делаем
         foreach ($this->ignoreExceptions as $ignoreException) {
             if ($exception instanceof $ignoreException) {

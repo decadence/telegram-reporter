@@ -2,10 +2,10 @@
 
 namespace TelegramReporter;
 
-use App;
 use GuzzleHttp\RequestOptions;
-use Log;
-use URL;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\URL;
 use Exception;
 use GuzzleHttp\Client;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -103,11 +103,15 @@ class TelegramReporter
 
         $url = URL::full();
 
+        $user = Auth::user();
+
         $file = $exception->getFile();
         $line = $exception->getLine();
         $env = App::environment();
+        $user = data_get($user, "full_name", "N/A");
+        $ip = request()->server("SERVER_ADDR", "N/A");
 
-        $replace = compact("message", "file", "line", "class", "url", "env");
+        $replace = compact("message", "file", "line", "class", "url", "env", "user", "ip");
 
         $text = trans("telegram.exception", $replace);
 

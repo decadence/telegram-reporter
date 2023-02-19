@@ -1,6 +1,6 @@
 <?php
 
-namespace Telegram;
+namespace TelegramReporter;
 
 use App;
 use Log;

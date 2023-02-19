@@ -5,6 +5,7 @@ namespace TelegramReporter;
 use GuzzleHttp\RequestOptions;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Exception;
 use GuzzleHttp\Client;
@@ -30,6 +31,10 @@ class TelegramReporter
      */
     protected $token;
 
+    /**
+     * Таймаут взаимодействия с Telegram
+     * @var int
+     */
     protected $timeout = 5;
 
     /**
@@ -96,8 +101,21 @@ class TelegramReporter
             }
         }
 
+        $text = trans("telegram.exception", $this->getExceptionDetails($exception));
+
+        return $this->sendMessage($text);
+    }
+
+    /**
+     * Получение информации об исключении
+     * @param Throwable $exception
+     */
+    protected function getExceptionDetails(Throwable $exception)
+    {
+        $emptyValue = "N/A";
+
         $message = $exception->getMessage();
-        $message = $message ? $message : "Отсутствует";
+        $message = $message ?: $emptyValue;
 
         $class = get_class($exception);
 
@@ -108,14 +126,10 @@ class TelegramReporter
         $file = $exception->getFile();
         $line = $exception->getLine();
         $env = App::environment();
-        $user = data_get($user, "full_name", "N/A");
-        $ip = request()->server("SERVER_ADDR", "N/A");
+        $user = data_get($user, "full_name", $emptyValue);
+        $ip = request()->server("SERVER_ADDR", $emptyValue);
 
-        $replace = compact("message", "file", "line", "class", "url", "env", "user", "ip");
-
-        $text = trans("telegram.exception", $replace);
-
-        return $this->sendMessage($text);
+        return compact("message", "file", "line", "class", "url", "env", "user", "ip");
     }
 
     /**

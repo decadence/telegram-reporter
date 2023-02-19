@@ -1,0 +1,15 @@
+{
+    "name": "decadence/telegram-reporter",
+    "description": "description",
+
+    "require": {
+        "guzzlehttp/guzzle": "^7.5"
+    },
+
+    "autoload": {
+
+        "psr-4": {
+            "TelegramReporter\\": "src/"
+        }
+    }
+}

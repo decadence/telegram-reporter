@@ -130,10 +130,10 @@ class TelegramReporter
         $file = $exception->getFile();
         $line = $exception->getLine();
 
-        $url = URL::full();
+        $url = App::runningInConsole() ? "CLI" : URL::full();
         $env = App::environment();
         $ip = request()->server("SERVER_ADDR", $emptyValue);
-        $user = data_get($user, "full_name", $emptyValue);
+        $user = $user->getFullName();
 
         return compact("message", "file", "line", "class", "url", "env", "user", "ip");
     }

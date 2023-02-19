@@ -3,6 +3,7 @@
 namespace TelegramReporter;
 
 use App;
+use GuzzleHttp\RequestOptions;
 use Log;
 use URL;
 use Exception;
@@ -28,6 +29,8 @@ class TelegramReporter
      * @var
      */
     protected $token;
+
+    protected $timeout = 5;
 
     /**
      * Список игнорируемых исключений
@@ -127,11 +130,12 @@ class TelegramReporter
             $text = Str::limit($text, $messageLimit, "...");
 
             $response = $this->client->post($url, [
-                "form_params" => [
+                RequestOptions::FORM_PARAMS => [
                     "chat_id" => $this->chatId,
                     "text" => $text,
                 ],
-                "timeout" => 5,
+
+                RequestOptions::TIMEOUT => $this->timeout,
             ]);
 
             $json = json_decode($response->getBody()->getContents());

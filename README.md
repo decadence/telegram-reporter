@@ -19,3 +19,19 @@ public function register()
     });
 }
 ```
+
+Пример сообщения об ошибке берётся из `trans("telegram.exception")`.
+
+```
+"⚠️ Ошибка в проекте
+
+Сообщение: :message
+
+Файл и строка: :file, :line
+
+Тип: :class
+
+URL: :url
+Пользователь: :user
+Площадка: :env"
+```

@@ -23,7 +23,7 @@ public function register()
 Пример сообщения об ошибке берётся из `trans("telegram.exception")`.
 
 ```
-"⚠️ Ошибка в проекте
+⚠️ Ошибка в проекте
 
 Сообщение: :message
 
@@ -33,5 +33,5 @@ public function register()
 
 URL: :url
 Пользователь: :user
-Площадка: :env"
+Площадка: :env
 ```

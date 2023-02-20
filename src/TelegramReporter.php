@@ -1,6 +1,6 @@
 <?php
 
-namespace TelegramReporter;
+namespace Decadence;
 
 use GuzzleHttp\RequestOptions;
 use Illuminate\Support\Facades\App;
@@ -133,7 +133,11 @@ class TelegramReporter
         $url = App::runningInConsole() ? "CLI" : URL::full();
         $env = App::environment();
         $ip = request()->server("SERVER_ADDR", $emptyValue);
-        $user = $user->getFullName();
+
+        // получение имени пользователя
+        $user = method_exists($user, "getName") ?
+            $user->getName() :
+            data_get($user, "name", $emptyValue);
 
         return compact("message", "file", "line", "class", "url", "env", "user", "ip");
     }

@@ -20,7 +20,7 @@ public function register()
 }
 ```
 
-Пример сообщения об ошибке берётся из `trans("telegram.exception")`.
+Пример сообщения об ошибке, оно берётся из `trans("telegram.exception")`.
 
 ```
 ⚠️ Ошибка в проекте

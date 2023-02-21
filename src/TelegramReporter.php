@@ -32,6 +32,12 @@ class TelegramReporter
     protected $token;
 
     /**
+     * Значение для пустых значений
+     * @var string
+     */
+    protected $emptyValue = "N/A";
+
+    /**
      * Таймаут взаимодействия с Telegram в секундах
      * @var int
      */
@@ -97,21 +103,48 @@ class TelegramReporter
      */
     public function sendExceptionMessage(Throwable $exception)
     {
-        // не отправляем исключения с локальной площадки
-        if (App::isLocal()) {
-            return false;
-        }
-
-        // если исключение в списке игнорируемых, ничего не делаем
-        foreach ($this->ignoreExceptions as $ignoreException) {
-            if ($exception instanceof $ignoreException) {
+        try {
+            // не отправляем исключения с локальной площадки
+            if (App::isLocal()) {
                 return false;
             }
+
+            // если исключение в списке игнорируемых, ничего не делаем
+            foreach ($this->ignoreExceptions as $ignoreException) {
+                if ($exception instanceof $ignoreException) {
+                    return false;
+                }
+            }
+
+            $text = trans("telegram.exception", $this->getExceptionDetails($exception));
+
+            return $this->sendMessage($text);
+        } catch (Throwable $throwable) {
+            Log::error("Ошибка при отправке сообщения: {$throwable->getMessage()}");
+            return false;
+        }
+    }
+
+    /**
+     * Получение имени пользователя
+     * @return string|void
+     */
+    protected function getUserName()
+    {
+        // в консоли всегда не будет пользователя
+        if (App::runningInConsole()) {
+            return $this->emptyValue;
         }
 
-        $text = trans("telegram.exception", $this->getExceptionDetails($exception));
+        $user = Auth::user();
 
-        return $this->sendMessage($text);
+        if (!$user) {
+            return $this->emptyValue;
+        }
+
+        return method_exists($user, "getName") ?
+            $user->getName() :
+            data_get($user, "name", $this->emptyValue);
     }
 
     /**
@@ -120,11 +153,7 @@ class TelegramReporter
      */
     protected function getExceptionDetails(Throwable $exception)
     {
-        $emptyValue = "N/A";
-
-        $message = $exception->getMessage() ?: $emptyValue;
-
-        $user = Auth::user();
+        $message = $exception->getMessage() ?: $this->emptyValue;
 
         $class = get_class($exception);
         $file = $exception->getFile();
@@ -132,12 +161,9 @@ class TelegramReporter
 
         $url = App::runningInConsole() ? "CLI" : URL::full();
         $env = App::environment();
-        $ip = request()->server("SERVER_ADDR", $emptyValue);
+        $ip = request()->server("SERVER_ADDR", $this->emptyValue);
 
-        // получение имени пользователя
-        $user = method_exists($user, "getName") ?
-            $user->getName() :
-            data_get($user, "name", $emptyValue);
+        $user = $this->getUserName();
 
         return compact("message", "file", "line", "class", "url", "env", "user", "ip");
     }
